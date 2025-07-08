@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kai Song Sorter</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+  button { margin: 10px; padding: 10px 20px; font-size: 18px; cursor: pointer; }
+  #result { margin-top: 30px; }
+  #counter { margin-bottom: 20px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h2>Kai Song Sorter</h2>
+<p id="counter">Comparison 0 / 0</p>
+<p>Click the song you prefer:</p>
+
+<div id="comparison"></div>
+<div id="result"></div>
+
+<script>
+const songs = [
+  "Mmmh", 
+  "Reason",
+  "Amnesia",
+  "Ride or Die",
+  "Hello Stranger",
+  "Nothing On Me",
+  "Peaches",
+  "Vanilla",
+  "Domino",
+  "Come In",
+  "To Be Honest",
+  "Blue",
+  "Rover",
+  "Black Mirror",
+  "Slidin'",
+  "Say You Love Me",
+  "Bomba",
+  "Sinner",
+  "Wait On Me",
+  "Pressure",
+  "Off And Away",
+  "Ridin'",
+  "Walls Don't Talk",
+  "Adult Swim",
+  "Flight to Paris",
+  "Deep Breath",
+  "I See U",
+  "Confession",
+  "Spoiler"
+];
+
+// Fisher-Yates shuffle
+function shuffle(array) {
+  for (let i = array.length -1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+const shuffledSongs = shuffle([...songs]);
+
+// Global counters
+let currentComparison = 0;
+let totalComparisons = 0;
+
+// To count total comparisons before starting, we do a dry run
+function countComparisons(arr) {
+  if (arr.length <= 1) return 0;
+  const mid = Math.floor(arr.length / 2);
+  const leftCount = countComparisons(arr.slice(0, mid));
+  const rightCount = countComparisons(arr.slice(mid));
+  const mergeCount = arr.length - 1; // number of comparisons during merge is less than length
+  return leftCount + rightCount + mergeCount;
+}
+
+totalComparisons = countComparisons(shuffledSongs);
+
+function updateCounter() {
+  document.getElementById('counter').textContent = 
+    `Comparison ${currentComparison} / ${totalComparisons}`;
+}
+
+function mergeSortSongs(arr, onDone) {
+  if (arr.length <= 1) {
+    onDone(arr);
+    return;
+  }
+  const mid = Math.floor(arr.length / 2);
+  mergeSortSongs(arr.slice(0, mid), leftSorted => {
+    mergeSortSongs(arr.slice(mid), rightSorted => {
+      merge(leftSorted, rightSorted, onDone);
+    });
+  });
+}
+
+function merge(left, right, onDone) {
+  const result = [];
+  let i = 0, j = 0;
+
+  function compareNext() {
+    if (i >= left.length) {
+      onDone(result.concat(right.slice(j)));
+      return;
+    }
+    if (j >= right.length) {
+      onDone(result.concat(left.slice(i)));
+      return;
+    }
+
+    // Update counter before showing buttons
+    currentComparison++;
+    updateCounter();
+
+    // Randomize button order
+    const order = Math.random() < 0.5 ? ['left', 'right'] : ['right', 'left'];
+    
+    const song1 = order[0] === 'left' ? left[i] : right[j];
+    const song2 = order[1] === 'left' ? left[i] : right[j];
+
+    showComparison(song1, song2, choice => {
+      let pickedSide;
+      if (choice === 'left') {
+        pickedSide = order[0];
+      } else {
+        pickedSide = order[1];
+      }
+
+      if (pickedSide === 'left') {
+        result.push(left[i]);
+        i++;
+      } else {
+        result.push(right[j]);
+        j++;
+      }
+      compareNext();
+    });
+  }
+
+  compareNext();
+}
+
+function showComparison(song1, song2, callback) {
+  const container = document.getElementById('comparison');
+  container.innerHTML = '';
+
+  const btn1 = document.createElement('button');
+  btn1.textContent = song1;
+  btn1.onclick = () => callback('left');
+
+  const btn2 = document.createElement('button');
+  btn2.textContent = song2;
+  btn2.onclick = () => callback('right');
+
+  container.appendChild(btn1);
+  container.appendChild(btn2);
+}
+
+mergeSortSongs(shuffledSongs, sorted => {
+  document.getElementById('comparison').innerHTML = '';
+  document.getElementById('counter').textContent = 'Done!';
+  const resultDiv = document.getElementById('result');
+  let html = '<h3>Final Ranked List:</h3><ol>';
+  for (const song of sorted) {
+    html += `<li>${song}</li>`;
+  }
+  html += '</ol>';
+  resultDiv.innerHTML = html;
+});
+</script>
+
+</body>
+</html>
